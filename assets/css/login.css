@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500&display=swap');
+
+:root {
+    /* colors customise to the design guys, colors are hard */
+    --primary-color: #e74c3c;
+    --primary-hover-color: #b43227;
+    --secondary-color: #f39c12;
+    --background-color: #f0f2f5;
+    --form-bg-color: #fff;
+    --text-color: #333;
+    --text-light-color: #fff;
+    --error-color: #ff4c4c;
+
+    /* Font */
+    --primary-font: 'Arial', sans-serif;
+
+    /* Image URL for banner */
+    --login-background-image: url('https://placehold.co/550x649?text=Login+placeholder');
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--primary-font);
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: var(--background-color);
+}
+
+.container {
+    display: flex;
+    width: 90%;
+    max-width: 1200px;
+    height: 80vh;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Left Section with Login Background Image */
+.left-section {
+    flex: 1;
+    background-image: var(--login-background-image);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.left-section .overlay {
+    background-color: rgba(0, 0, 0, 0.6);
+    padding: 40px;
+    text-align: center;
+    border-radius: 10px;
+}
+
+.left-section h1 {
+    color: var(--text-light-color);
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.left-section p {
+    color: var(--text-light-color);
+    font-size: 1.2rem;
+    max-width: 300px;
+}
+
+/* Right Section of  Login Form */
+.right-section {
+    flex: 1;
+    padding: 50px;
+    background-color: var(--form-bg-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+}
+
+.login-form h2 {
+    font-size: 2rem;
+    margin-bottom: 30px;
+    color: var(--text-color);
+}
+
+/* Input styles */
+.input-container {
+    width: 100%;
+    max-width: 400px;
+    border-radius: 5px;
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.09);
+    box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.09);
+    margin-bottom: 20px;
+
+}
+
+.input-container input {
+    width: 100%;
+    padding: 15px 20px;
+    border: none;
+    outline: none;
+    border-radius: 5px;
+    color: #333;
+    font-size: 14px;
+    transition: 0.3s ease;
+}
+
+.input-container label {
+    font-size: 14px;
+    background: #ffffff;
+    padding: 0 10px;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+    transition: 0.3s ease;
+    color: #9d9d9d;
+}
+
+.input-container input:focus~label,
+.input-container input:not(:placeholder-shown)~label {
+    top: 0;
+    transform: translateY(-80%);
+    scale: 0.9;
+    color: #18b3c3;
+    width: fit-content;
+}
+
+.input-container .input-bg {
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    border-radius: 5px;
+    transform: scaleX(0);
+    transition: 0.3s ease;
+}
+
+.input-container input:focus~.input-bg {
+    background: linear-gradient(to right, #18b3c3, #ff00fb);
+    transform: scaleX(1);
+}
+
+/* Button styles */
+.login-form button {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--primary-color);
+    color: var(--text-light-color);
+    font-size: 1rem;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.login-form button:hover {
+    background-color: var(--primary-hover-color);
+}
+
+.error-message {
+    margin-bottom: 20px;
+    color: var(--error-color);
+}
+
+.signup-link {
+    margin-top: 15px;
+    font-size: 0.9rem;
+}
+
+.signup-link a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.signup-link a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive Design ( i tried ) */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .left-section {
+        height: 300px;
+    }
+
+    .login-form {
+        padding: 20px;
+    }
+}
