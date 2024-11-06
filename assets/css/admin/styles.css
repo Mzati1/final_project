@@ -1,0 +1,299 @@
+/* Root CSS Variables */
+:root {
+    /* Colors */
+    --primary-bg-color: #f1f2f6;
+    --primary-text-color: #333;
+    --sidebar-bg-color: #2f3542;
+    --sidebar-hover-bg-color: #57606f;
+    --stat-box-bg-color: #fff;
+    --stat-box-shadow: rgba(0, 0, 0, 0.1);
+    --active-tab-color: #2ed573;
+    --status-active-color: #27ae60;
+    --status-completed-color: #e74c3c;
+    --table-header-bg-color: #f8f8f8;
+    --table-row-hover-bg-color: #f1f1f1;
+
+    /* Font Sizes */
+    --base-font-size: 16px;
+    --sidebar-font-size: 16px;
+    --heading-font-size: 20px;
+    --stat-value-font-size: 24px;
+
+    /* Spacing */
+    --container-padding: 30px;
+    --sidebar-width: 250px;
+    --sidebar-padding: 30px 20px;
+    --stat-box-padding: 20px;
+    --user-icon-size: 40px;
+}
+
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--primary-bg-color);
+    color: var(--primary-text-color);
+    overscroll-behavior: none;
+}
+
+/* Container that holds sidebar and main content */
+.container {
+    display: flex;
+}
+
+/* Sidebar styling */
+.sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg-color);
+    padding: var(--sidebar-padding);
+    color: white;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+}
+
+.sidebar h3 {
+    margin-bottom: 30px;
+    font-size: var(--heading-font-size);
+    text-align: center;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar ul li {
+    margin: 15px 0;
+}
+
+.sidebar ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: var(--sidebar-font-size);
+    display: block;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background 0.3s;
+}
+
+.sidebar ul li a:hover {
+    background-color: var(--sidebar-hover-bg-color);
+}
+
+/* Active tab styling */
+.sidebar ul li a.active {
+    background-color: var(--active-tab-color);
+}
+
+/* Main content area */
+.main-content {
+    flex: 1;
+    padding: var(--container-padding);
+}
+
+/* Topbar */
+.top-bar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.user-info p {
+    font-size: var(--heading-font-size);
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+.user-icon {
+    width: var(--user-icon-size);
+    height: var(--user-icon-size);
+    background-image: url(https://avatar.iran.liara.run/public/job/operator/male);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Tab content display */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Styling for stats section */
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin: 20px 0;
+}
+
+.stat-box {
+    background-color: var(--stat-box-bg-color);
+    padding: var(--stat-box-padding);
+    width: 22%;
+    text-align: center;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px var(--stat-box-shadow);
+}
+
+.stat-box h3 {
+    font-size: var(--base-font-size);
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: var(--stat-value-font-size);
+    font-weight: bold;
+}
+
+/* Recent Activity Table */
+.recent-activity {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+.recent-activity th,
+.recent-activity td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.recent-activity th {
+    background-color: var(--table-header-bg-color);
+}
+
+.recent-activity tr:hover {
+    background-color: var(--table-row-hover-bg-color);
+}
+
+/* Status labels */
+.status {
+    padding: 5px 10px;
+    border-radius: 12px;
+    color: white;
+    text-transform: capitalize;
+}
+
+.status.active {
+    background-color: var(--status-active-color);
+}
+
+.status.completed {
+    background-color: var(--status-completed-color);
+}
+
+/* Glass effect */
+.table-responsive {
+    overflow-x: auto;
+    backdrop-filter: blur(8px);
+    /* Apply frosted glass effect */
+    background: rgba(255, 255, 255, 0.2);
+    /* Semi-transparent white background */
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif;
+}
+
+.user-table th,
+.user-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.user-table th {
+    background-color: rgba(255, 255, 255, 0.7);
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.user-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Status and Action Button Styles */
+.status {
+    padding: 5px 10px;
+    border-radius: 20px;
+    color: white;
+}
+
+.status.active {
+    background-color: #28a745;
+}
+
+.status.inactive {
+    background-color: #dc3545;
+}
+
+button {
+    padding: 6px 12px;
+    margin-right: 5px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.btn-edit {
+    background-color: #007bff;
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #0056b3;
+}
+
+.btn-save {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-save:hover {
+    background-color: #218838;
+}
+
+.btn-delete {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-delete:hover {
+    background-color: #c82333;
+}
+
+/* Typographic adjustments */
+h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 16px;
+    color: #555;
+}
