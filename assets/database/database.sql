@@ -80,17 +80,17 @@ CREATE INDEX idx_candidates_position_id ON candidates(position_id);
 -- Votes Table (no changes needed here)
 CREATE TABLE votes (
     vote_id INT PRIMARY KEY AUTO_INCREMENT,
-    student_id INT NOT NULL,
+    user_id INT NOT NULL,
     candidate_id INT NOT NULL,
     election_id INT NOT NULL,
     position_id INT NOT NULL,
     vote_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     vote_hash CHAR(64) NOT NULL UNIQUE,
-    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES candidates(candidate_id) ON DELETE CASCADE,
     FOREIGN KEY (election_id) REFERENCES elections(election_id) ON DELETE CASCADE,
     FOREIGN KEY (position_id) REFERENCES positions(position_id) ON DELETE CASCADE,
-    CONSTRAINT unique_student_election_position UNIQUE (student_id, election_id, position_id)
+    CONSTRAINT unique_student_election_position UNIQUE (user_id, election_id, position_id)
 );
 -- faster indexes on the coloumns below and for finding specific vote
 CREATE INDEX idx_votes_student_id ON votes(student_id);

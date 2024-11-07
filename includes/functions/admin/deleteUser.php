@@ -1,28 +1,34 @@
 <?php
-// Check if the user is authenticated and has the right permissions
-session_start();
 
-// Ensure user has the correct role
-if ($_SESSION['role'] !== 'admin' && $_SESSION['role'] !== 'MEC') {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized']);
-    exit;
-}
+//database
 
-// Check if user_id is passed
-if (isset($_POST['user_id'])) {
-    $userId = $_POST['user_id'];
+require __DIR__ . "/../../configs/database.php";
 
-    // Prepare and execute the SQL delete query
-    $deleteSql = "DELETE FROM users WHERE id = :user_id";
-    $stmt = $pdo->prepare($deleteSql);
-    $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
 
-    // Execute the query and check success
-    if ($stmt->execute()) {
-        echo json_encode(['success' => true]);
+header('Content-Type: application/json');
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $userId = $_POST['user_id'] ?? null;
+
+    if ($userId) {
+        try {
+            $stmt = $pdo->prepare("DELETE FROM users WHERE user_id = :user_id");
+            $stmt->bindParam(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->execute();
+
+            if ($stmt->rowCount() > 0) {
+                echo json_encode(["success" => true, "message" => "User deleted successfully."]);
+            } else {
+                echo json_encode(["success" => false, "message" => "User not found or already deleted."]);
+            }
+        } catch (PDOException $e) {
+            echo json_encode(["success" => false, "message" => "Database error: " . $e->getMessage()]);
+        }
     } else {
-        echo json_encode(['success' => false]);
+        echo json_encode(["success" => false, "message" => "Invalid user ID."]);
     }
 } else {
-    echo json_encode(['success' => false]);
+    echo json_encode(["success" => false, "message" => "Invalid request method."]);
 }
