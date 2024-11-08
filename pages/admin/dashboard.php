@@ -135,49 +135,6 @@ GROUP BY e.election_id;
 
 //REPORTS SECTION
 
-$getUserReportsMetricsSql = "
- SELECT 
-    (SELECT COUNT(DISTINCT v.user_id) 
-     FROM votes v) AS total_users_voted,
-
-    -- Total users who have not voted
-    (SELECT COUNT(DISTINCT u.user_id) 
-     FROM users u 
-     LEFT JOIN votes v ON u.user_id = v.user_id 
-     WHERE v.user_id IS NULL) AS users_not_voted,
-
-    -- Total registered users
-    (SELECT COUNT(u.user_id) 
-     FROM users u
-     INNER JOIN students s ON u.student_id = s.student_id
-     WHERE s.is_registered = TRUE) AS total_registered_users,
-
-    -- Voter turnout percentage
-    (SELECT 
-        (COUNT(DISTINCT v.user_id) / 
-         (SELECT COUNT(u.user_id) 
-          FROM users u 
-          INNER JOIN students s ON u.student_id = s.student_id 
-          WHERE s.is_registered = TRUE)) * 100 
-     FROM votes v) AS voter_turnout_percentage,
-
-    -- Recently joined users (limit to 5 most recent)
-    (SELECT JSON_ARRAYAGG(
-            JSON_OBJECT(
-                'user_id', u.user_id,
-                'first_name', s.first_name,
-                'last_name', s.last_name,
-                'email', s.email,
-                'created_at', u.created_at
-            )
-     )
-     FROM users u
-     INNER JOIN students s ON u.student_id = s.student_id
-     ORDER BY u.created_at DESC
-     LIMIT 5) AS recent_users;
-
-";
-
 
 // Step 2: Execute SQL queries and fetch results
 
@@ -212,10 +169,6 @@ $allCandidatesData = $getCandidatesDataSqlStatement ? $getCandidatesDataSqlState
 $getModalElectionDataStatement = executeQuery($pdo, $modalElectionDataSql);
 $electionsData = $getModalElectionDataStatement ? $getModalElectionDataStatement->fetchAll(PDO::FETCH_ASSOC) : [];
 
-//reports section
-//user reports
-$getUserReportMetricsStatement =  executeQuery($pdo, $getUserReportsMetricsSql);
-$userReportMetricsData = $getUserReportMetricsStatement ? $getUserReportMetricsStatement->fetchAll(PDO::FETCH_ASSOC) : [];
 
 // Prepare the result as an associative arraygetUserReportMetricsStatement
 $dashboardMetrics = [
@@ -234,11 +187,7 @@ $dashboardMetrics = [
 
     // Candidates panel
     'all_candidates' => $allCandidatesData,
-    'elections_with_positions' => $electionsData,
-
-    //reports panel
-    //user reports
-    'userReport_metrics' => $userReportMetricsData
+    'elections_with_positions' => $electionsData
 ];
 
 ?>
@@ -525,16 +474,16 @@ $dashboardMetrics = [
                             <?php foreach ($allElectionsData as $election): ?>
                                 <tr id="election-<?php echo $election['election_id']; ?>"
                                     data-election-id="<?php echo $election['election_id']; ?>">
-                                    <td><span class="editable-field">
+                                    <td><span class="editable-field" data-field-name="election_name">
                                             <?php echo htmlspecialchars($election['election_name']); ?>
                                         </span></td>
-                                    <td><span class="editable-field">
+                                    <td><span class="editable-field" data-field-name="start_date">
                                             <?php echo htmlspecialchars($election['start_date']); ?>
                                         </span></td>
-                                    <td><span class="editable-field">
+                                    <td><span class="editable-field" data-field-name="end_date">
                                             <?php echo htmlspecialchars($election['end_date']); ?>
                                         </span></td>
-                                    <td><span class="editable-field">
+                                    <td><span class="editable-field" data-field-name="status">
                                             <?php echo htmlspecialchars($election['status']); ?>
                                         </span></td>
                                     <td>
@@ -542,10 +491,10 @@ $dashboardMetrics = [
                                     </td>
                                     <td>
                                         <?php
-                                        $modifiedAt = strtotime($election['updated_at']);
-                                        $timeDifference = time() - $modifiedAt;
+                                        $modifiedAt = strtotime($election['updated_at']);  // Convert the 'updated_at' timestamp to Unix time
+                                        $timeDifference = time() - $modifiedAt;  // Calculate the difference between now and the last update
 
-                                        // Calculate difference in time units
+                                        // Calculate the time difference in various units
                                         $seconds = $timeDifference;
                                         $minutes = round($seconds / 60);
                                         $hours = round($seconds / 3600);
@@ -571,8 +520,8 @@ $dashboardMetrics = [
                                             echo ($years == 1) ? "one year ago" : "$years years ago";
                                         }
                                         ?>
-                                    </td>
 
+                                    </td>
                                     <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
                                         <td>
                                             <button class="btn-edit" onclick="toggleEdit(this)">Edit</button>
@@ -585,14 +534,15 @@ $dashboardMetrics = [
                         </tbody>
                     </table>
                 </div>
+
             </div>
+
 
             <div class="tab-content" id="manage-candidates">
                 <h2>Manage Candidates</h2>
                 <p>Below is a list of candidates grouped by their elections.</p>
 
                 <!-- Modal HTML -->
-
                 <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
                     <!-- Button to Open Add Candidate Modal -->
                     <button id="new-candidate-btn"
@@ -600,7 +550,6 @@ $dashboardMetrics = [
                         onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'"
                         class="btn btn-primary" onclick="openNewCandidateModal()">Add New Candidate</button>
                 <?php endif; ?>
-
 
                 <!-- Candidates Table -->
                 <?php
@@ -634,7 +583,6 @@ $dashboardMetrics = [
                                             <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
                                                 <th>Actions</th>
                                             <?php endif; ?>
-
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -653,19 +601,29 @@ $dashboardMetrics = [
                                                     $lastName = htmlspecialchars($candidate['last_name']);
                                                     $imageUrl = $candidate['image_url'] ? $candidate['image_url'] : 'https://via.placeholder.com/50';
                                                     $manifesto = htmlspecialchars($candidate['manifesto']); ?>
-                                                    <tr>
+                                                    <tr data-candidate-id="<?php echo $candidateId; ?>" class="candidate-row">
                                                         <td>
-                                                            <?php echo htmlspecialchars($positionName); ?>
+                                                            <span class="editable-field">
+                                                                <?php echo htmlspecialchars($positionName); ?>
+                                                            </span>
                                                         </td>
                                                         <td>
-                                                            <?php echo $firstName; ?>
+                                                            <span class="editable-field">
+                                                                <?php echo $firstName; ?>
+                                                            </span>
                                                         </td>
                                                         <td>
-                                                            <?php echo $lastName; ?>
+                                                            <span class="editable-field">
+                                                                <?php echo $lastName; ?>
+                                                            </span>
                                                         </td>
-                                                        <td><img src="<?php echo $imageUrl; ?>" alt="Candidate Image" width="50"></td>
                                                         <td>
-                                                            <?php echo $manifesto; ?>
+                                                            <img src="<?php echo $imageUrl; ?>" alt="Candidate Image" width="50">
+                                                        </td>
+                                                        <td>
+                                                            <span class="editable-field">
+                                                                <?php echo $manifesto; ?>
+                                                            </span>
                                                         </td>
 
                                                         <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
@@ -698,6 +656,7 @@ $dashboardMetrics = [
                 }
                 ?>
             </div>
+
 
             <div id="manage-auditLogs" class="tab-content">
                 <h2>Manage Audit Logs</h2>
@@ -758,7 +717,6 @@ $dashboardMetrics = [
                 </div>
             </div>
 
-
             <div class="tab-content" id="view-reports">
                 <h2 style="font-size: 1.75rem; font-weight: 600; color: #333; margin-bottom: 0.5em;">Audit Reports</h2>
                 <p style="font-size: 1rem; color: #666; margin-bottom: 1.5em;">Below is a list of audit logs grouped by
@@ -781,40 +739,32 @@ $dashboardMetrics = [
 
                 <!-- Reports Tab Content Sections -->
                 <div id="view-reports">
+                    <!-- User Voting Activity Report -->
                     <div id="user-report" class="report-tab-content active-report-content">
-
-                        <!-- Download PDF Button -->
-                        <div class="download-container">
-                            <button class="download-button">Download PDF</button>
-                        </div>
-
-                        <!-- Pie Chart Section -->
                         <h3>User Voting Activity</h3>
                         <div class="chart-container">
                             <canvas id="userRegistrationPieChart"></canvas>
                         </div>
 
-                        <!-- Stats Boxes Section -->
                         <div class="stats-container">
                             <div class="stat-box">
                                 <h4>Users who've Voted</h4>
-                                <p id="total-unregistered"><?php echo htmlspecialchars($userReportMetricsData[0]['total_users_voted']) ?> </p>
+                                <p id="total-unregistered"></p>
                             </div>
                             <div class="stat-box">
                                 <h4>Users not Voted</h4>
-                                <p id="total-registered"><?php echo htmlspecialchars($userReportMetricsData[0]['users_not_voted']) ?> </p>
+                                <p id="total-registered"></p>
                             </div>
                             <div class="stat-box">
-                                <h4>Registerd users</h4>
-                                <p id="total-admins"><?php echo htmlspecialchars($userReportMetricsData[0]['total_registered_users']) ?> </p>
+                                <h4>Registered users</h4>
+                                <p id="total-admins"></p>
                             </div>
                             <div class="stat-box">
                                 <h4>Voter Turnout Percentage</h4>
-                                <p id="total-mec-staff"><?php echo htmlspecialchars(round($userReportMetricsData[0]['voter_turnout_percentage'], 0)) ?> %</p>
+                                <p id="total-mec-staff">%</p>
                             </div>
                         </div>
 
-                        <!-- Recently Joined Users Table -->
                         <div class="recent-users-table-container">
                             <h3 id="recent-users-header">Recently Joined Users</h3>
                             <table id="recent-users-table">
@@ -825,39 +775,174 @@ $dashboardMetrics = [
                                         <th class="recent-users-column-registration-date">Registration Date</th>
                                     </tr>
                                 </thead>
-                                <tbody id="recent-users-tbody">
-                                    <?php
-                                    // Check if there are recent users
-                                    if (!empty($userReportMetricsData['recent_users'])) {
-                                        // Loop through each user and display their data
-                                        foreach ($userReportMetricsData['recent_users'] as $user) {
-                                            echo '<tr class="recent-users-table-row">';
-                                            // Display name
-                                            echo '<td class="recent-users-name">' . htmlspecialchars($user['first_name']) . ' ' . htmlspecialchars($user['last_name']) . '</td>';
-                                            // Display email
-                                            echo '<td class="recent-users-email">' . htmlspecialchars($user['email']) . '</td>';
-                                            // Display registration date
-                                            echo '<td class="recent-users-registration-date">' . date('Y-m-d', strtotime($user['created_at'])) . '</td>';
-                                            echo '</tr>';
-                                        }
-                                    } else {
-                                        echo '<tr class="recent-users-empty"><td colspan="3">No recent users found.</td></tr>';
-                                    }
-                                    ?>
-                                </tbody>
+                                <tbody id="recent-users-tbody"></tbody>
                             </table>
                         </div>
-
                     </div>
 
+                    <!-- Login Activity Report -->
                     <div id="login-report" class="report-tab-content">
-                        <!-- Content for Login Reports (empty for now) -->
+                        <h3>Login Activity</h3>
+                        <div class="chart-container">
+                            <canvas id="loginActivityPieChart"></canvas>
+                        </div>
+
+                        <div class="stats-container">
+                            <div class="stat-box">
+                                <h4>Logins Today</h4>
+                                <p id="logins-today"></p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Failed Logins Today</h4>
+                                <p id="failed-logins-today"></p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Popular Devices</h4>
+                                <p id="popular-devices"></p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Last Login IP</h4>
+                                <p id="last-login-ip"></p>
+                            </div>
+                        </div>
+
+                        <div class="recent-logins-table-container"
+                            style="margin: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+                            <h3 id="recent-logins-header" style="font-size: 1.5em; margin-bottom: 15px; color: #333;">
+                                Recent Login Attempts
+                            </h3>
+                            <table id="recent-logins-table"
+                                style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th class="recent-logins-column-account"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Account</th>
+                                        <th class="recent-logins-column-time"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Login Time</th>
+                                        <th class="recent-logins-column-status"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Status</th>
+                                        <th class="recent-logins-column-ip"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            IP Address</th>
+                                        <th class="recent-logins-column-client"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Client</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-logins-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
+
+                    <!-- Election Report -->
                     <div id="election-report" class="report-tab-content">
-                        <!-- Content for Election Reports (empty for now) -->
+                        <h3>Election Status</h3>
+                        <div class="chart-container">
+                            <canvas id="electionStatusPieChart"></canvas>
+                        </div>
+
+                        <div class="stats-container">
+                            <div class="stat-box">
+                                <h4>Total Elections</h4>
+                                <p id="total-elections">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Open Elections</h4>
+                                <p id="open-elections">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Closed Elections</h4>
+                                <p id="closed-elections">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Upcoming Elections</h4>
+                                <p id="upcoming-elections">0</p>
+                            </div>
+                        </div>
+
+                        <div class="recent-elections-table-container"
+                            style="margin: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+                            <h3 id="recent-elections-header"
+                                style="font-size: 1.5em; margin-bottom: 15px; color: #333;">Recent Elections
+                            </h3>
+                            <table id="recent-elections-table"
+                                style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th class="recent-elections-column-name"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Election Name</th>
+                                        <th class="recent-elections-column-date"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Dates</th>
+                                        <th class="recent-elections-column-status"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-elections-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
+
+                    <!-- Voting Activity Report -->
                     <div id="voting-activity-report" class="report-tab-content">
-                        <!-- Content for Voting Activity Reports (empty for now) -->
+                        <h3>Voting Activity</h3>
+                        <div class="chart-container">
+                            <canvas id="votingActivityPieChart"></canvas>
+                        </div>
+
+                        <div class="stats-container">
+                            <div class="stat-box">
+                                <h4>Total Votes</h4>
+                                <p id="total-votes">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Votes Cast Today</h4>
+                                <p id="votes-today">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>No.1 Election</h4>
+                                <p id="votes-in-progress">0</p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Most Voted For</h4>
+                                <p id="votes-by-position">N/A</p>
+                            </div>
+                        </div>
+
+                        <div class="recent-voting-activity-table-container"
+                            style="margin: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background-color: #f9f9f9;">
+                            <h3 id="recent-voting-activity-header"
+                                style="font-size: 1.5em; margin-bottom: 15px; color: #333;">Recent Voting
+                                Activity</h3>
+                            <table id="recent-voting-activity-table"
+                                style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th class="recent-voting-column-account"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Voter</th>
+                                        <th class="recent-voting-column-election"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Election</th>
+                                        <th class="recent-voting-column-position"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Position</th>
+                                        <th class="recent-voting-column-candidate"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Candidate</th>
+                                        <th class="recent-voting-column-time"
+                                            style="padding: 12px; text-align: left; font-size: 14px; background-color: #898d8c; color: white;">
+                                            Vote Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-voting-activity-tbody"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -980,6 +1065,11 @@ $dashboardMetrics = [
             xhr.send(formData);
         });
     </script>
+
+    <!--electoins editing and deleting-->
+    <script src="../../assets/js/admin/electionsEditandDel.js"></script>
+
+    <script src="../../assets/js/admin/reportStats.js"></script>
 
 </body>
 

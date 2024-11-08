@@ -117,13 +117,37 @@ document.addEventListener("DOMContentLoaded", () => {
     "bar",
     "Votes per Election",
     "../../includes/functions/admin/getDashboardCharts.php",
-    true // responsive = true
+    true
   );
 
   loadChartData(
     "userRegistrationPieChart",
     "pie",
     "Reg. Users vs Students",
+    "../../includes/functions/admin/getUserRegistrationChart.php",
+    false
+  );
+
+  loadChartData(
+    "votingActivityPieChart",
+    "pie",
+    "",
+    "../../includes/functions/admin/getUserRegistrationChart.php",
+    false
+  );
+
+  loadChartData(
+    "electionStatusPieChart",
+    "pie",
+    "",
+    "../../includes/functions/admin/getUserRegistrationChart.php",
+    false
+  );
+
+  loadChartData(
+    "loginActivityPieChart",
+    "pie",
+    "",
     "../../includes/functions/admin/getUserRegistrationChart.php",
     false
   );

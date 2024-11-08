@@ -1,26 +1,40 @@
-//using ajax to get live audits
-
 // Function to fetch and display both login and vote audit logs
 function fetchAuditLogs() {
-  // Fetch both login and vote audit logs from the server
-  fetch("../../includes/functions/admin/liveAuditLogs.php")
-    .then((response) => response.json())
-    .then((data) => {
-      // Check if there's an error in the response
-      if (data.error) {
-        console.error("Error:", data.error);
-        return;
+  // Create a new XMLHttpRequest object
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", "../../includes/functions/admin/liveAuditLogs.php", true);
+
+  // Define the response behavior
+  xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && xhr.status === 200) {
+      try {
+        // Parse the JSON response
+        var data = JSON.parse(xhr.responseText);
+
+        // Check if there's an error in the response
+        if (data.error) {
+          console.error("Error:", data.error);
+          return;
+        }
+
+        // Call the function to populate the login audit table
+        populateLoginAuditTable(data.loginLogs);
+
+        // Call the function to populate the vote audit table
+        populateVoteAuditTable(data.voteLogs);
+      } catch (error) {
+        console.error("Error parsing JSON:", error);
       }
+    }
+  };
 
-      // Call the function to populate the login audit table
-      populateLoginAuditTable(data.loginLogs);
+  // Handle network errors
+  xhr.onerror = function () {
+    console.error("Error fetching audit logs");
+  };
 
-      // Call the function to populate the vote audit table
-      populateVoteAuditTable(data.voteLogs);
-    })
-    .catch((error) => {
-      console.error("Error fetching audit logs:", error);
-    });
+  // Send the request
+  xhr.send();
 }
 
 // Function to format date to a readable format (e.g., MM/DD/YYYY HH:MM:SS)
@@ -45,8 +59,7 @@ function getDeviceAndBrowserInfo() {
   let deviceType = "Unknown Device";
   let browser = "Unknown Browser";
 
-  // Detecting the device type ( you can add more these are the ones i know)
-
+  // Detecting the device type
   if (platform.includes("Win")) {
     deviceType = "Windows";
   } else if (platform.includes("Mac")) {
@@ -68,7 +81,6 @@ function getDeviceAndBrowserInfo() {
   }
 
   // Detecting the browser using the user agent
-
   if (userAgent.includes("Chrome") && userAgent.includes("Edg/")) {
     browser = "Edge";
   } else if (userAgent.includes("OPR") || userAgent.includes("Opera")) {
