@@ -663,3 +663,78 @@ select.editable-select {
     color: #777;
     font-style: italic;
 }
+
+/* Container and Title */
+#view-results {
+    padding: 20px;
+    background-color: #f9f9f9;
+}
+
+#completed-elections-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Election Card */
+.election-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.election-info {
+    flex: 1;
+}
+
+.election-title {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin: 0;
+}
+
+.election-date {
+    font-size: 14px;
+    color: #777;
+    margin-top: 5px;
+}
+
+/* Buttons */
+.election-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.view-details-btn,
+.download-results-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+/* Specific Styles for Buttons */
+.view-details-btn {
+    background-color: #4CAF50;
+    color: #fff;
+}
+
+.view-details-btn:hover {
+    background-color: #45A049;
+}
+
+.download-results-btn {
+    background-color: #2196F3;
+    color: #fff;
+}
+
+.download-results-btn:hover {
+    background-color: #1E88E5;
+}

@@ -231,7 +231,7 @@ $dashboardMetrics = [
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-elections">Elections</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-auditLogs">Audit Logs</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="view-reports">Reports</a></li>
-                <li><a href="javascript:void(0);" class="tab-link" data-tab="settings">Results</a></li>
+                <li><a href="javascript:void(0);" class="tab-link" data-tab="view-results">Results</a></li>
                 <li><a href="../../includes/functions/logout.php">Logout</a></li>
             </ul>
         </div>
@@ -537,7 +537,6 @@ $dashboardMetrics = [
 
             </div>
 
-
             <div class="tab-content" id="manage-candidates">
                 <h2>Manage Candidates</h2>
                 <p>Below is a list of candidates grouped by their elections.</p>
@@ -656,7 +655,6 @@ $dashboardMetrics = [
                 }
                 ?>
             </div>
-
 
             <div id="manage-auditLogs" class="tab-content">
                 <h2>Manage Audit Logs</h2>
@@ -784,7 +782,7 @@ $dashboardMetrics = [
                     <div id="login-report" class="report-tab-content">
                         <h3>Login Activity</h3>
                         <div class="chart-container">
-                            <canvas id="loginActivityPieChart"></canvas>
+                            <canvas id="loginActivityLineChart"></canvas>
                         </div>
 
                         <div class="stats-container">
@@ -891,7 +889,8 @@ $dashboardMetrics = [
                     <!-- Voting Activity Report -->
                     <div id="voting-activity-report" class="report-tab-content">
                         <h3>Voting Activity</h3>
-                        <div class="chart-container">
+
+                        <div class="chart-container" style="height: 60%;">
                             <canvas id="votingActivityPieChart"></canvas>
                         </div>
 
@@ -947,10 +946,42 @@ $dashboardMetrics = [
                 </div>
             </div>
 
+            <div class="tab-content" id="view-results">
+                <h3>Completed Elections</h3>
+
+                <div id="completed-elections-container">
+
+                    <!-- Single Election Card -->
+                    <div class="election-card" id="election-1">
+                        <div class="election-info">
+                            <h4 class="election-title">Student Council Election 2024</h4>
+                            <p class="election-date">Completed on: October 20, 2024</p>
+                        </div>
+                        <div class="election-actions">
+                            <button class="view-details-btn" id="view-details-1">View Details</button>
+                            <button class="download-results-btn" id="download-results-1">Download Results</button>
+                        </div>
+                    </div>
+
+                    <div class="election-card" id="election-2">
+                        <div class="election-info">
+                            <h4 class="election-title">Club Representative Election 2024</h4>
+                            <p class="election-date">Completed on: November 1, 2024</p>
+                        </div>
+                        <div class="election-actions">
+                            <button class="view-details-btn" id="view-details-2">View Details</button>
+                            <button class="download-results-btn" id="download-results-2">Download Results</button>
+                        </div>
+                    </div>
+
+                    <!-- Add more election cards as needed -->
+
+                </div>
+            </div>
+
+
         </div>
     </div>
-
-
 
     <!--tab switching logic ( both sub tabs and main tabs guys)-->
     <script src="../../assets//js/admin/tabSwitchingLogic.js"></script>

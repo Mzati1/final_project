@@ -21,9 +21,9 @@ function fetchVotingActivity() {
       document.getElementById("total-votes").textContent = response.total_votes;
       document.getElementById("votes-today").textContent = response.votes_today;
       document.getElementById("votes-in-progress").textContent =
-        response.votes_in_progress;
+        response.most_voted_election;
       document.getElementById("votes-by-position").textContent =
-        response.votes_by_position; // Correct 'most_voted_for' field
+        response.most_voted_candidate;
 
       // Update recent voting activity table
       var recentVotingHTML = "";

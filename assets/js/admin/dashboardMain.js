@@ -111,7 +111,57 @@ function loadChartData(
 
 // Example usage to load multiple charts with unique endpoints
 document.addEventListener("DOMContentLoaded", () => {
-  // Example 1: Responsive chart
+  //main dashboard chart
+  loadChartData(
+    "myChart",
+    "bar",
+    "Votes per Election",
+    "../../includes/functions/admin/getDashboardCharts.php",
+    true
+  );
+
+  // user reg chart
+  loadChartData(
+    "userRegistrationPieChart",
+    "pie",
+    "Reg. Users vs Students",
+    "../../includes/functions/admin/getUserRegistrationChart.php",
+    false
+  );
+
+  //login activity chart
+  loadChartData(
+    "loginActivityLineChart",
+    "pie",
+    "Logins Per Device",
+    "../../includes/functions/admin/getLoginActivityChart.php",
+    false
+  );
+
+  //voting activity chart
+  loadChartData(
+    "votingActivityPieChart",
+    "line",
+    "Vote Distribution",
+    "../../includes/functions/admin/getVotingActivityChart.php",
+    true
+  );
+
+  //election status chart
+  loadChartData(
+    "electionStatusPieChart",
+    "pie",
+    "Votes per election",
+    "../../includes/functions/admin/getElectionStatusChart.php",
+    false
+  );
+});
+
+// refreshing every 30s
+
+setInterval(() => {
+  // Call each loadChartData function
+
   loadChartData(
     "myChart",
     "bar",
@@ -125,64 +175,30 @@ document.addEventListener("DOMContentLoaded", () => {
     "pie",
     "Reg. Users vs Students",
     "../../includes/functions/admin/getUserRegistrationChart.php",
-    false
+    true
   );
 
   loadChartData(
-    "votingActivityPieChart",
-    "pie",
+    "loginActivityLineChart",
+    "line",
     "",
-    "../../includes/functions/admin/getUserRegistrationChart.php",
+    "../../includes/functions/admin/getLoginActivityChart.php",
     false
   );
 
   loadChartData(
     "electionStatusPieChart",
     "pie",
-    "",
-    "../../includes/functions/admin/getUserRegistrationChart.php",
+    "Votes per election",
+    "../../includes/functions/admin/getElectionStatusChart.php",
     false
   );
 
   loadChartData(
-    "loginActivityPieChart",
-    "pie",
-    "",
-    "../../includes/functions/admin/getUserRegistrationChart.php",
-    false
+    "votingActivityPieChart",
+    "line",
+    "Vote Distribution",
+    "../../includes/functions/admin/getVotingActivityChart.php",
+    true
   );
-});
-
-// Optional: Automatically refresh each chart every 30 seconds
-setInterval(
-  () =>
-    loadChartData(
-      "myChart",
-      "bar",
-      "Votes per Election",
-      "../../includes/functions/admin/getDashboardCharts.php",
-      true // responsive = true
-    ),
-  30000
-);
-setInterval(
-  () =>
-    loadChartData(
-      "userRegistrationPieChart",
-      "pie",
-      "Reg. Users vs Students",
-      "../../includes/functions/admin/getUserRegistrationChart.php",
-      true
-    ),
-  30000
-);
-setInterval(
-  () =>
-    loadChartData(
-      "chart3",
-      "line",
-      "Election Trend Over Time",
-      "../../includes/functions/admin/getElectionTrendChart.php"
-    ),
-  30000
-);
+}, 30000); // 30 seconds

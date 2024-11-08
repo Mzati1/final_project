@@ -141,31 +141,55 @@ function getVotingActivity($pdo)
     $stmt->execute([':today' => "$today%"]);
     $votesToday = $stmt->fetch(PDO::FETCH_ASSOC)['votes_today'];
 
-    // Most voted for election (based on votes)
-    $stmt = $pdo->query("SELECT election_id, COUNT(*) AS vote_count FROM votes GROUP BY election_id ORDER BY vote_count DESC LIMIT 1");
+    // Most voted-for election (based on votes) - Returning election name
+    $stmt = $pdo->query("
+        SELECT e.election_name, COUNT(v.vote_id) AS vote_count
+        FROM votes v
+        JOIN elections e ON v.election_id = e.election_id
+        GROUP BY e.election_id
+        ORDER BY vote_count DESC LIMIT 1
+    ");
     $mostVotedForElection = $stmt->fetch(PDO::FETCH_ASSOC);
-    $mostVotedForElectionId = $mostVotedForElection['election_id'] ?? 'N/A';
+    $mostVotedForElectionName = $mostVotedForElection['election_name'] ?? 'N/A';
 
-    // Most voted position (based on votes)
-    $stmt = $pdo->query("SELECT position_id, COUNT(*) AS vote_count FROM votes GROUP BY position_id ORDER BY vote_count DESC LIMIT 1");
+    // Most voted-for position (based on votes) - Returning candidate name
+    $stmt = $pdo->query("
+        SELECT p.position_name, c.first_name AS candidate_first, c.last_name AS candidate_last, COUNT(v.vote_id) AS vote_count
+        FROM votes v
+        JOIN positions p ON v.position_id = p.position_id
+        JOIN candidates c ON v.candidate_id = c.candidate_id
+        GROUP BY p.position_id, c.candidate_id
+        ORDER BY vote_count DESC LIMIT 1
+    ");
     $mostVotedForPosition = $stmt->fetch(PDO::FETCH_ASSOC);
-    $mostVotedForPositionId = $mostVotedForPosition['position_id'] ?? 'N/A';
+    $mostVotedForPositionName = $mostVotedForPosition['position_name'] ?? 'N/A';
+    $mostVotedForCandidate = $mostVotedForPosition['candidate_first'] . ' ' . $mostVotedForPosition['candidate_last'] ?? 'N/A';
 
     // Get recent voting activity
-    $stmt = $pdo->query("SELECT students.first_name, students.last_name, elections.election_name, positions.position_name, candidates.first_name AS candidate_first, candidates.last_name AS candidate_last, votes.vote_time
+    $stmt = $pdo->query("
+        SELECT 
+            students.first_name, 
+            students.last_name, 
+            elections.election_name, 
+            positions.position_name, 
+            candidates.first_name AS candidate_first, 
+            candidates.last_name AS candidate_last, 
+            votes.vote_time
         FROM votes
         JOIN students ON students.student_id = votes.user_id
         JOIN elections ON elections.election_id = votes.election_id
         JOIN positions ON positions.position_id = votes.position_id
         JOIN candidates ON candidates.candidate_id = votes.candidate_id
-        ORDER BY votes.vote_time DESC LIMIT 5");
+        ORDER BY votes.vote_time DESC LIMIT 5
+    ");
     $recentVotingActivity = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     return [
         'total_votes' => $totalVotes,
         'votes_today' => $votesToday,
-        'votes_in_progress' => $mostVotedForElectionId,
-        'votes_by_position' => $mostVotedForPositionId,
+        'most_voted_election' => $mostVotedForElectionName,  // Changed to election name
+        'most_voted_position' => $mostVotedForPositionName,  // Changed to position name
+        'most_voted_candidate' => $mostVotedForCandidate,    // Added most voted candidate
         'recent_voting_activity' => $recentVotingActivity
     ];
 }

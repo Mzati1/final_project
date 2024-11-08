@@ -40,7 +40,7 @@ try {
             LEFT JOIN elections e ON va.election_id = e.election_id
             LEFT JOIN positions p ON va.position_id = p.position_id
             ORDER BY va.vote_time DESC
-            LIMIT 50"; // Adjust limit as needed
+            LIMIT 50";
 
     // Execute the login audit query
     $loginStmt = $pdo->query($loginSql);
