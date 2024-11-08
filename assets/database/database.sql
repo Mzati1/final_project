@@ -9,7 +9,7 @@ CREATE TABLE students (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
--- Index for frequent searches by reg number and email (e.g., in login operations) and on checking reg status
+-- Index for frequent searches by reg number, email, and registration status
 CREATE INDEX idx_students_reg_number ON students(reg_number);
 CREATE INDEX idx_students_email ON students(email);
 CREATE INDEX idx_students_reg_status ON students(is_registered);
@@ -22,8 +22,8 @@ CREATE TABLE users (
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
 );
--- Index for frequent searches by email (login operation)
-CREATE INDEX idx_users_student_id ON users(user_id);
+-- Index for frequent searches by student_id
+CREATE INDEX idx_users_student_id ON users(student_id);
 -- Admins Table
 CREATE TABLE admins (
     admin_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -35,10 +35,10 @@ CREATE TABLE admins (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
--- Index for frequent searches by email for admin login and on checking roles
+-- Indexes for frequent searches by email and role
 CREATE INDEX idx_admins_email ON admins(email);
 CREATE INDEX idx_admins_role ON admins(role);
--- Elections Table (no changes needed here)
+-- Elections Table
 CREATE TABLE elections (
     election_id INT PRIMARY KEY AUTO_INCREMENT,
     election_name VARCHAR(100) NOT NULL,
@@ -48,7 +48,7 @@ CREATE TABLE elections (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
--- Positions Table (no changes needed here)
+-- Positions Table
 CREATE TABLE positions (
     position_id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
@@ -58,9 +58,9 @@ CREATE TABLE positions (
     modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (election_id) REFERENCES elections(election_id) ON DELETE CASCADE
 );
--- for frequent queries on the position id's
+-- Index for frequent queries on election_id
 CREATE INDEX idx_positions_election_id ON positions(election_id);
--- Candidates Table (no changes needed here)
+-- Candidates Table
 CREATE TABLE candidates (
     candidate_id INT PRIMARY KEY AUTO_INCREMENT,
     election_id INT NOT NULL,
@@ -74,10 +74,10 @@ CREATE TABLE candidates (
     FOREIGN KEY (election_id) REFERENCES elections(election_id) ON DELETE CASCADE,
     FOREIGN KEY (position_id) REFERENCES positions(position_id) ON DELETE CASCADE
 );
--- fasterr joinis on election and position ids
+-- Index for frequent queries on election_id and position_id
 CREATE INDEX idx_candidates_election_id ON candidates(election_id);
 CREATE INDEX idx_candidates_position_id ON candidates(position_id);
--- Votes Table (no changes needed here)
+-- Votes Table
 CREATE TABLE votes (
     vote_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
@@ -92,13 +92,14 @@ CREATE TABLE votes (
     FOREIGN KEY (position_id) REFERENCES positions(position_id) ON DELETE CASCADE,
     CONSTRAINT unique_student_election_position UNIQUE (user_id, election_id, position_id)
 );
--- faster indexes on the coloumns below and for finding specific vote
-CREATE INDEX idx_votes_student_id ON votes(student_id);
+-- Indexes for frequent queries on user_id, candidate_id, election_id, position_id, and vote_id
+CREATE INDEX idx_votes_user_id ON votes(user_id);
 CREATE INDEX idx_votes_candidate_id ON votes(candidate_id);
 CREATE INDEX idx_votes_election_id ON votes(election_id);
 CREATE INDEX idx_votes_position_id ON votes(position_id);
+CREATE INDEX idx_votes_vote_hash ON votes(vote_hash);
 CREATE INDEX idx_votes_vote_id ON votes(vote_id);
--- Login Audit Table (no changes needed here)
+-- Login Audit Table
 CREATE TABLE login_audit (
     audit_id INT PRIMARY KEY AUTO_INCREMENT,
     attempted_account VARCHAR(100) NOT NULL,
@@ -112,37 +113,36 @@ CREATE TABLE login_audit (
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
     FOREIGN KEY (admin_id) REFERENCES admins(admin_id) ON DELETE CASCADE
 );
--- Indexes for faster queries on account_type and login_status
+-- Indexes for quicker filtering by account_type, login_status, student_id, and admin_id
 CREATE INDEX idx_login_audit_account_type ON login_audit(account_type);
 CREATE INDEX idx_login_audit_status ON login_audit(login_status);
--- Index on student_id and admin_id for filtering by specific user types ( incase we need to ban or check for ddos)
 CREATE INDEX idx_login_audit_student_id ON login_audit(student_id);
 CREATE INDEX idx_login_audit_admin_id ON login_audit(admin_id);
--- Vote Audit Table (no changes needed here)
+-- Vote Audit Table
 CREATE TABLE vote_audit (
     audit_id INT PRIMARY KEY AUTO_INCREMENT,
     vote_id INT NOT NULL,
-    student_id INT NOT NULL,
+    user_id INT NOT NULL,
     candidate_id INT NOT NULL,
     election_id INT NOT NULL,
     position_id INT NOT NULL,
     vote_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (vote_id) REFERENCES votes(vote_id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (candidate_id) REFERENCES candidates(candidate_id) ON DELETE CASCADE,
     FOREIGN KEY (election_id) REFERENCES elections(election_id) ON DELETE CASCADE,
     FOREIGN KEY (position_id) REFERENCES positions(position_id) ON DELETE CASCADE
 );
--- should help when tracking voting activity
-CREATE INDEX idx_vote_audit_student_id ON vote_audit(student_id);
+-- Index for tracking voting activity more efficiently
+CREATE INDEX idx_vote_audit_user_id ON vote_audit(user_id);
 CREATE INDEX idx_vote_audit_election_id ON vote_audit(election_id);
--- Trigger to log votes in the vote_audit table (no changes needed)
-CREATE TRIGGER after_vote_insert
+-- Trigger for auto audit votes
+DELIMITER // CREATE TRIGGER after_vote_insert
 AFTER
 INSERT ON votes FOR EACH ROW BEGIN
 INSERT INTO vote_audit (
         vote_id,
-        student_id,
+        user_id,
         candidate_id,
         election_id,
         position_id,
@@ -150,10 +150,10 @@ INSERT INTO vote_audit (
     )
 VALUES (
         NEW.vote_id,
-        NEW.student_id,
+        NEW.user_id,
         NEW.candidate_id,
         NEW.election_id,
         NEW.position_id,
         NEW.vote_time
     );
-END;
+END // DELIMITER

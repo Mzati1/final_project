@@ -13,7 +13,7 @@ require __DIR__ . "/../../includes/functions/queryExecutor.php";
 
 // Dashboard queries
 $getTotalVoterSql = "
-    SELECT COUNT(DISTINCT student_id) AS total_voters
+    SELECT COUNT(DISTINCT user_id) AS total_voters
     FROM votes;
 ";
 
@@ -132,6 +132,53 @@ LEFT JOIN positions p ON e.election_id = p.election_id
 GROUP BY e.election_id;
 ";
 
+
+//REPORTS SECTION
+
+$getUserReportsMetricsSql = "
+ SELECT 
+    (SELECT COUNT(DISTINCT v.user_id) 
+     FROM votes v) AS total_users_voted,
+
+    -- Total users who have not voted
+    (SELECT COUNT(DISTINCT u.user_id) 
+     FROM users u 
+     LEFT JOIN votes v ON u.user_id = v.user_id 
+     WHERE v.user_id IS NULL) AS users_not_voted,
+
+    -- Total registered users
+    (SELECT COUNT(u.user_id) 
+     FROM users u
+     INNER JOIN students s ON u.student_id = s.student_id
+     WHERE s.is_registered = TRUE) AS total_registered_users,
+
+    -- Voter turnout percentage
+    (SELECT 
+        (COUNT(DISTINCT v.user_id) / 
+         (SELECT COUNT(u.user_id) 
+          FROM users u 
+          INNER JOIN students s ON u.student_id = s.student_id 
+          WHERE s.is_registered = TRUE)) * 100 
+     FROM votes v) AS voter_turnout_percentage,
+
+    -- Recently joined users (limit to 5 most recent)
+    (SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+                'user_id', u.user_id,
+                'first_name', s.first_name,
+                'last_name', s.last_name,
+                'email', s.email,
+                'created_at', u.created_at
+            )
+     )
+     FROM users u
+     INNER JOIN students s ON u.student_id = s.student_id
+     ORDER BY u.created_at DESC
+     LIMIT 5) AS recent_users;
+
+";
+
+
 // Step 2: Execute SQL queries and fetch results
 
 // Dashboard queries
@@ -165,7 +212,12 @@ $allCandidatesData = $getCandidatesDataSqlStatement ? $getCandidatesDataSqlState
 $getModalElectionDataStatement = executeQuery($pdo, $modalElectionDataSql);
 $electionsData = $getModalElectionDataStatement ? $getModalElectionDataStatement->fetchAll(PDO::FETCH_ASSOC) : [];
 
-// Prepare the result as an associative array
+//reports section
+//user reports
+$getUserReportMetricsStatement =  executeQuery($pdo, $getUserReportsMetricsSql);
+$userReportMetricsData = $getUserReportMetricsStatement ? $getUserReportMetricsStatement->fetchAll(PDO::FETCH_ASSOC) : [];
+
+// Prepare the result as an associative arraygetUserReportMetricsStatement
 $dashboardMetrics = [
     // Dashboard panel
     'total_voters' => $totalVoters['total_voters'],
@@ -182,7 +234,11 @@ $dashboardMetrics = [
 
     // Candidates panel
     'all_candidates' => $allCandidatesData,
-    'elections_with_positions' => $electionsData
+    'elections_with_positions' => $electionsData,
+
+    //reports panel
+    //user reports
+    'userReport_metrics' => $userReportMetricsData
 ];
 
 ?>
@@ -203,15 +259,29 @@ $dashboardMetrics = [
     <div class="container">
         <!-- Admin Panel Sidebar -->
         <div class="sidebar">
-            <h3>MEC Dashboard</h3>
+            <h3>
+                <?php
+
+                if ($_SESSION['role'] === "ADMIN") {
+                    echo "ADMIN";
+                } else if ($_SESSION['role'] === "MEC") {
+                    echo "MEC";
+                } else {
+                    echo "DoSA";
+                }
+
+                ?>
+
+                Dashboard
+            </h3>
             <ul>
                 <!-- Sidebar items that act as tabs -->
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="dashboard">Dashboard</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-users">Users</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-candidates">Candidates</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-elections">Elections</a></li>
-                <li><a href="javascript:void(0);" class="tab-link" data-tab="view-logs">Audit Logs</a></li>
-                <li><a href="javascript:void(0);" class="tab-link" data-tab="results">Reports</a></li>
+                <li><a href="javascript:void(0);" class="tab-link" data-tab="manage-auditLogs">Audit Logs</a></li>
+                <li><a href="javascript:void(0);" class="tab-link" data-tab="view-reports">Reports</a></li>
                 <li><a href="javascript:void(0);" class="tab-link" data-tab="settings">Results</a></li>
                 <li><a href="../../includes/functions/logout.php">Logout</a></li>
             </ul>
@@ -227,11 +297,6 @@ $dashboardMetrics = [
                             <?php echo htmlspecialchars($_SESSION['first_name']); ?>
                         </b></p>
                     <div class="user-icon" onclick="toggleDropdown()"></div>
-                    <div class="dropdown" id="profileDropdown">
-                        <ul>
-                            <li><a href="#">Profile</a></li>
-                        </ul>
-                    </div>
                 </div>
             </div>
 
@@ -383,44 +448,60 @@ $dashboardMetrics = [
                 <h2>Manage Elections</h2>
                 <p>Below is a list of elections with their details.</p>
 
-                <!-- Button to Open the Modal -->
-                <button id="new-election-btn"
-                    class="btn btn-primary"
-                    onclick="openNewElectionModal()"
-                    style="display: inline-block;padding: 12px 24px;font-size: 16px;font-weight: bold;color: white;background-color: #28a745; /* Green color */border: none;border-radius: 8px;cursor: pointer;text-align: center;transition: background-color 0.3s ease;margin-top: 30px;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">
-                    New Election
-                </button>
+
+                <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
+
+                    <!-- Button to Open the Modal -->
+                    <button id="new-election-btn" class="btn btn-primary" onclick="openNewElectionModal()"
+                        style="display: inline-block;padding: 12px 24px;font-size: 16px;font-weight: bold;color: white;background-color: #28a745; /* Green color */border: none;border-radius: 8px;cursor: pointer;text-align: center;transition: background-color 0.3s ease;margin-top: 30px;"
+                        onmouseover="this.style.backgroundColor='#218838'"
+                        onmouseout="this.style.backgroundColor='#28a745'">
+                        New Election
+                    </button>
+
+                <?php endif; ?>
+
 
                 <!-- Modal HTML -->
-                <div id="new-election-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; padding-top: 50px; overflow-y: auto;">
-                    <div style="background-color: #fff; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; position: relative;">
-                        <button id="close-modal-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 20px; color: #333;">&times;</button>
+                <div id="new-election-modal"
+                    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); z-index: 1000; padding-top: 50px; overflow-y: auto;">
+                    <div
+                        style="background-color: #fff; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; position: relative;">
+                        <button id="close-modal-btn"
+                            style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 20px; color: #333;">&times;</button>
                         <h2>Create New Election</h2>
                         <form id="election-form" style="display: flex; flex-direction: column; gap: 15px;">
                             <label for="election-name">Election Name:</label>
-                            <input type="text" id="election-name" name="election_name" placeholder="Enter election name" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
+                            <input type="text" id="election-name" name="election_name" placeholder="Enter election name"
+                                style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
 
                             <label for="start-date">Start Date:</label>
-                            <input type="date" id="start-date" name="start_date" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
+                            <input type="date" id="start-date" name="start_date"
+                                style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
 
                             <label for="end-date">End Date:</label>
-                            <input type="date" id="end-date" name="end_date" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
+                            <input type="date" id="end-date" name="end_date"
+                                style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
 
                             <label for="status">Status:</label>
-                            <select id="status" name="status" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
+                            <select id="status" name="status"
+                                style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;" required>
                                 <option value="open">Open</option>
                                 <option value="closed">Closed</option>
                             </select>
 
                             <div id="positions-section" style="margin-top: 20px;">
                                 <h3>Positions</h3>
-                                <button type="button" id="add-position-btn" style="padding: 8px 16px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer;">Add Position</button>
+                                <button type="button" id="add-position-btn"
+                                    style="padding: 8px 16px; border: none; background-color: #007bff; color: white; border-radius: 5px; cursor: pointer;">Add
+                                    Position</button>
                                 <div id="positions-container" style="margin-top: 15px;">
                                     <!-- Dynamic Position Fields will be added here -->
                                 </div>
                             </div>
 
-                            <button type="submit" id="submit-election-btn" style="padding: 10px 20px; border: none; background-color: #28a745; color: white; border-radius: 5px; cursor: pointer;">Submit</button>
+                            <button type="submit" id="submit-election-btn"
+                                style="padding: 10px 20px; border: none; background-color: #28a745; color: white; border-radius: 5px; cursor: pointer;">Submit</button>
                         </form>
                     </div>
                 </div>
@@ -442,12 +523,23 @@ $dashboardMetrics = [
                         </thead>
                         <tbody>
                             <?php foreach ($allElectionsData as $election): ?>
-                                <tr id="election-<?php echo $election['election_id']; ?>" data-election-id="<?php echo $election['election_id']; ?>">
-                                    <td><span class="editable-field"><?php echo htmlspecialchars($election['election_name']); ?></span></td>
-                                    <td><span class="editable-field"><?php echo htmlspecialchars($election['start_date']); ?></span></td>
-                                    <td><span class="editable-field"><?php echo htmlspecialchars($election['end_date']); ?></span></td>
-                                    <td><span class="editable-field"><?php echo htmlspecialchars($election['status']); ?></span></td>
-                                    <td><?php echo htmlspecialchars($election['created_at']); ?></td>
+                                <tr id="election-<?php echo $election['election_id']; ?>"
+                                    data-election-id="<?php echo $election['election_id']; ?>">
+                                    <td><span class="editable-field">
+                                            <?php echo htmlspecialchars($election['election_name']); ?>
+                                        </span></td>
+                                    <td><span class="editable-field">
+                                            <?php echo htmlspecialchars($election['start_date']); ?>
+                                        </span></td>
+                                    <td><span class="editable-field">
+                                            <?php echo htmlspecialchars($election['end_date']); ?>
+                                        </span></td>
+                                    <td><span class="editable-field">
+                                            <?php echo htmlspecialchars($election['status']); ?>
+                                        </span></td>
+                                    <td>
+                                        <?php echo htmlspecialchars($election['created_at']); ?>
+                                    </td>
                                     <td>
                                         <?php
                                         $modifiedAt = strtotime($election['updated_at']);
@@ -484,7 +576,8 @@ $dashboardMetrics = [
                                     <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
                                         <td>
                                             <button class="btn-edit" onclick="toggleEdit(this)">Edit</button>
-                                            <button class="btn-delete" onclick="deleteElection(<?php echo $election['election_id']; ?>)">Delete</button>
+                                            <button class="btn-delete"
+                                                onclick="deleteElection(<?php echo $election['election_id']; ?>)">Delete</button>
                                         </td>
                                     <?php endif; ?>
                                 </tr>
@@ -499,68 +592,15 @@ $dashboardMetrics = [
                 <p>Below is a list of candidates grouped by their elections.</p>
 
                 <!-- Modal HTML -->
-                <div id="new-candidate-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; padding-top: 50px;">
-                    <div style="background-color: #fff; max-width: 600px; margin: auto; padding: 20px; border-radius: 8px; position: relative;">
-                        <button id="close-candidate-modal-btn" style="position: absolute; top: 10px; right: 10px; background: transparent; border: none; font-size: 20px; color: #333;">&times;</button>
-                        <h2>Add New Candidate</h2>
-                        <form id="candidate-form" style="display: flex; flex-direction: column; gap: 20px;">
-                            <!-- 2x2 Grid Layout for Name and Election Fields -->
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                                <!-- First Name -->
-                                <div>
-                                    <label for="first-name">First Name:</label>
-                                    <input type="text" id="first-name" name="first_name" placeholder="Enter first name" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;">
-                                </div>
 
-                                <!-- Last Name -->
-                                <div>
-                                    <label for="last-name">Last Name:</label>
-                                    <input type="text" id="last-name" name="last_name" placeholder="Enter last name" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;">
-                                </div>
+                <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
+                    <!-- Button to Open Add Candidate Modal -->
+                    <button id="new-candidate-btn"
+                        style="display: inline-block;padding: 12px 24px;font-size: 16px;font-weight: bold;color: white;background-color: #28a745; /* Green color */border: none;border-radius: 8px;cursor: pointer;text-align: center;transition: background-color 0.3s ease;margin-top: 30px;"
+                        onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'"
+                        class="btn btn-primary" onclick="openNewCandidateModal()">Add New Candidate</button>
+                <?php endif; ?>
 
-                                <!-- Election Dropdown -->
-                                <div>
-                                    <label for="election">Election:</label>
-                                    <select id="election" name="election" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;">
-                                        <option value="">Select Election</option>
-                                        <?php foreach ($electionsData as $election): ?>
-                                            <option value="<?php echo $election['election_id']; ?>"><?php echo htmlspecialchars($election['election_name']); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
-                                <!-- Position Dropdown -->
-                                <div>
-                                    <label for="position">Position:</label>
-                                    <select id="position" name="position" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;">
-                                        <option value="">Select Position</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Image Upload (Below the 2x2 Grid) -->
-                            <div>
-                                <label for="candidate-image">Upload Image:</label>
-                                <input type="file" id="candidate-image" name="candidate_image" accept="image/*" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;">
-                            </div>
-
-                            <!-- Manifesto Text Area -->
-                            <div>
-                                <label for="manifesto">Manifesto:</label>
-                                <textarea id="manifesto" name="manifesto" placeholder="Enter manifesto" rows="4" style="padding: 10px; border: 1px solid #ccc; border-radius: 5px; width: 100%;"></textarea>
-                            </div>
-
-                            <!-- Submit Button -->
-                            <div>
-                                <button type="submit" id="submit-candidate-btn" style="padding: 10px 20px; border: none; background-color: #28a745; color: white; border-radius: 5px; cursor: pointer; width: 100%;">Submit</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Button to Open Add Candidate Modal -->
-                <button id="new-candidate-btn" style="display: inline-block;padding: 12px 24px;font-size: 16px;font-weight: bold;color: white;background-color: #28a745; /* Green color */border: none;border-radius: 8px;cursor: pointer;text-align: center;transition: background-color 0.3s ease;margin-top: 30px;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'"
-                    class="btn btn-primary" onclick="openNewCandidateModal()">Add New Candidate</button>
 
                 <!-- Candidates Table -->
                 <?php
@@ -575,7 +615,9 @@ $dashboardMetrics = [
 
                 ?>
                     <div class="election-group">
-                        <h3><?php echo htmlspecialchars($electionName); ?></h3>
+                        <h3>
+                            <?php echo htmlspecialchars($electionName); ?>
+                        </h3>
 
                         <!-- Check if positions exist for this election -->
                         <?php if (count($positions) > 0): ?>
@@ -588,7 +630,11 @@ $dashboardMetrics = [
                                             <th>Last Name</th>
                                             <th>Image</th>
                                             <th>Manifesto</th>
-                                            <th>Actions</th>
+
+                                            <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
+                                                <th>Actions</th>
+                                            <?php endif; ?>
+
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -606,18 +652,30 @@ $dashboardMetrics = [
                                                     $firstName = htmlspecialchars($candidate['first_name']);
                                                     $lastName = htmlspecialchars($candidate['last_name']);
                                                     $imageUrl = $candidate['image_url'] ? $candidate['image_url'] : 'https://via.placeholder.com/50';
-                                                    $manifesto = htmlspecialchars($candidate['manifesto']);
-                                        ?>
+                                                    $manifesto = htmlspecialchars($candidate['manifesto']); ?>
                                                     <tr>
-                                                        <td><?php echo htmlspecialchars($positionName); ?></td>
-                                                        <td><?php echo $firstName; ?></td>
-                                                        <td><?php echo $lastName; ?></td>
-                                                        <td><img src="<?php echo $imageUrl; ?>" alt="Candidate Image" width="50"></td>
-                                                        <td><?php echo $manifesto; ?></td>
                                                         <td>
-                                                            <button class="btn-edit" onclick="editCandidate(<?php echo $candidateId; ?>)">Edit</button>
-                                                            <button class="btn-delete" onclick="deleteCandidate(<?php echo $candidateId; ?>)">Delete</button>
+                                                            <?php echo htmlspecialchars($positionName); ?>
                                                         </td>
+                                                        <td>
+                                                            <?php echo $firstName; ?>
+                                                        </td>
+                                                        <td>
+                                                            <?php echo $lastName; ?>
+                                                        </td>
+                                                        <td><img src="<?php echo $imageUrl; ?>" alt="Candidate Image" width="50"></td>
+                                                        <td>
+                                                            <?php echo $manifesto; ?>
+                                                        </td>
+
+                                                        <?php if ($_SESSION['role'] === 'ADMIN' || $_SESSION['role'] === 'MEC'): ?>
+                                                            <td>
+                                                                <button class="btn-edit"
+                                                                    onclick="editCandidate(<?php echo $candidateId; ?>)">Edit</button>
+                                                                <button class="btn-delete"
+                                                                    onclick="deleteCandidate(<?php echo $candidateId; ?>)">Delete</button>
+                                                            </td>
+                                                        <?php endif; ?>
                                                     </tr>
                                         <?php
                                                 }
@@ -632,7 +690,8 @@ $dashboardMetrics = [
                             </div>
                         <?php else: ?>
                             <!-- Display message if no positions exist for this election -->
-                            <p style="color: red; font-weight: bold; text-align: center;">No positions set for this election.</p>
+                            <p style="color: red; font-weight: bold; text-align: center;">No positions set for this election.
+                            </p>
                         <?php endif; ?>
                     </div>
                 <?php
@@ -640,30 +699,182 @@ $dashboardMetrics = [
                 ?>
             </div>
 
+            <div id="manage-auditLogs" class="tab-content">
+                <h2>Manage Audit Logs</h2>
+                <p style="margin-bottom: 10px;">Below is a list of audit logs grouped by type.</p>
+
+                <div class="audit-tab-nav">
+                    <button id="login-audit-tab" class="audit-tab active-tab"
+                        onclick="showAuditTab('login-audit')">Login Audits</button>
+                    <button id="vote-audit-tab" class="audit-tab" onclick="showAuditTab('vote-audit')">Voting
+                        Audits</button>
+                </div>
+
+                <!-- Login Audit Content -->
+                <div id="login-audit" class="audit-tab-content active">
+                    <h3>Login Audit Logs</h3>
+                    <p>Details of login attempts, including successful and failed attempts.</p>
+                    <!-- Table structure for login audits -->
+                    <div class="table-responsive">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Attempted Account</th>
+                                    <th>Account Type</th>
+                                    <th>Login Time</th>
+                                    <th>IP Address</th>
+                                    <th>Client</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows with login audit data would be added here live -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vote Audit Content -->
+                <div id="vote-audit" class="audit-tab-content">
+                    <h3>Vote Audit Logs</h3>
+                    <p>Details of Votes made</p>
+                    <!-- Table structure for vote audits -->
+                    <div class="table-responsive">
+                        <table class="user-table">
+                            <thead>
+                                <tr>
+                                    <th>Student Name</th>
+                                    <th>Candidate Name</th>
+                                    <th>Election</th>
+                                    <th>Position</th>
+                                    <th>Vote Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows with vote audit data would be added here live -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="tab-content" id="view-reports">
+                <h2 style="font-size: 1.75rem; font-weight: 600; color: #333; margin-bottom: 0.5em;">Audit Reports</h2>
+                <p style="font-size: 1rem; color: #666; margin-bottom: 1.5em;">Below is a list of audit logs grouped by
+                    type. Select
+                    a tab to view specific report details.</p>
+
+                <!-- Reports Tab Navigation -->
+                <div class="report-tab-nav">
+                    <button id="user-report-tab" class="report-tab active-report-tab"
+                        onclick="showReportTab('user-report')">User
+                        Reports</button>
+                    <button id="login-report-tab" class="report-tab" onclick="showReportTab('login-report')">Login
+                        Reports</button>
+                    <button id="election-report-tab" class="report-tab"
+                        onclick="showReportTab('election-report')">Election
+                        Reports</button>
+                    <button id="voting-activity-report-tab" class="report-tab"
+                        onclick="showReportTab('voting-activity-report')">Voting Activity Reports</button>
+                </div>
+
+                <!-- Reports Tab Content Sections -->
+                <div id="view-reports">
+                    <div id="user-report" class="report-tab-content active-report-content">
+
+                        <!-- Download PDF Button -->
+                        <div class="download-container">
+                            <button class="download-button">Download PDF</button>
+                        </div>
+
+                        <!-- Pie Chart Section -->
+                        <h3>User Voting Activity</h3>
+                        <div class="chart-container">
+                            <canvas id="userRegistrationPieChart"></canvas>
+                        </div>
+
+                        <!-- Stats Boxes Section -->
+                        <div class="stats-container">
+                            <div class="stat-box">
+                                <h4>Users who've Voted</h4>
+                                <p id="total-unregistered"><?php echo htmlspecialchars($userReportMetricsData[0]['total_users_voted']) ?> </p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Users not Voted</h4>
+                                <p id="total-registered"><?php echo htmlspecialchars($userReportMetricsData[0]['users_not_voted']) ?> </p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Registerd users</h4>
+                                <p id="total-admins"><?php echo htmlspecialchars($userReportMetricsData[0]['total_registered_users']) ?> </p>
+                            </div>
+                            <div class="stat-box">
+                                <h4>Voter Turnout Percentage</h4>
+                                <p id="total-mec-staff"><?php echo htmlspecialchars(round($userReportMetricsData[0]['voter_turnout_percentage'], 0)) ?> %</p>
+                            </div>
+                        </div>
+
+                        <!-- Recently Joined Users Table -->
+                        <div class="recent-users-table-container">
+                            <h3 id="recent-users-header">Recently Joined Users</h3>
+                            <table id="recent-users-table">
+                                <thead>
+                                    <tr>
+                                        <th class="recent-users-column-name">Name</th>
+                                        <th class="recent-users-column-email">Email</th>
+                                        <th class="recent-users-column-registration-date">Registration Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="recent-users-tbody">
+                                    <?php
+                                    // Check if there are recent users
+                                    if (!empty($userReportMetricsData['recent_users'])) {
+                                        // Loop through each user and display their data
+                                        foreach ($userReportMetricsData['recent_users'] as $user) {
+                                            echo '<tr class="recent-users-table-row">';
+                                            // Display name
+                                            echo '<td class="recent-users-name">' . htmlspecialchars($user['first_name']) . ' ' . htmlspecialchars($user['last_name']) . '</td>';
+                                            // Display email
+                                            echo '<td class="recent-users-email">' . htmlspecialchars($user['email']) . '</td>';
+                                            // Display registration date
+                                            echo '<td class="recent-users-registration-date">' . date('Y-m-d', strtotime($user['created_at'])) . '</td>';
+                                            echo '</tr>';
+                                        }
+                                    } else {
+                                        echo '<tr class="recent-users-empty"><td colspan="3">No recent users found.</td></tr>';
+                                    }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+
+                    </div>
+
+                    <div id="login-report" class="report-tab-content">
+                        <!-- Content for Login Reports (empty for now) -->
+                    </div>
+                    <div id="election-report" class="report-tab-content">
+                        <!-- Content for Election Reports (empty for now) -->
+                    </div>
+                    <div id="voting-activity-report" class="report-tab-content">
+                        <!-- Content for Voting Activity Reports (empty for now) -->
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    <script>
-        // Tab Switching Logic
-        const tabLinks = document.querySelectorAll(".tab-link");
-        const tabContents = document.querySelectorAll(".tab-content");
 
-        tabLinks.forEach((link) => {
-            link.addEventListener("click", (e) => {
-                const targetTab = e.target.getAttribute("data-tab");
 
-                // Hide all tab contents and remove active class from all links
-                tabContents.forEach((content) => content.classList.remove("active"));
-                tabLinks.forEach((tabLink) => tabLink.classList.remove("active"));
+    <!--tab switching logic ( both sub tabs and main tabs guys)-->
+    <script src="../../assets//js/admin/tabSwitchingLogic.js"></script>
 
-                // Show the clicked tab content
-                document.getElementById(targetTab).classList.add("active");
+    <!---live audit logs-->
+    <script src="../../assets/js/admin/liveAuditLogs.js"></script>
 
-                // Add active class to the clicked link
-                e.target.classList.add("active");
-            });
-        });
-    </script>
+    <!--main dashboard chart-->
+    <script src="../../assets/js/admin/dashboardMain.js"></script>
 
     <!--ELECTIONS MODAL-->
     <script>
@@ -770,52 +981,6 @@ $dashboardMetrics = [
         });
     </script>
 
-    <!--CANDIDATES MODAL -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Open Modal Function
-            function openNewCandidateModal() {
-                document.getElementById('new-candidate-modal').style.display = 'block';
-            }
-
-            // Close Modal Function
-            function closeCandidateModal() {
-                document.getElementById('new-candidate-modal').style.display = 'none';
-            }
-
-            // Populate Positions based on selected Election
-            document.getElementById('election').addEventListener('change', function() {
-                const electionId = this.value;
-                const positionSelect = document.getElementById('position');
-
-                // Clear current position options
-                positionSelect.innerHTML = '<option value="">Select Position</option>';
-
-                if (electionId) {
-                    // Fetch available positions for the selected election
-                    // Assuming $electionsData is available as a JavaScript object in the page.
-                    const elections = <?php echo json_encode($electionsData); ?>;
-                    const selectedElection = elections.find(e => e.election_id == electionId);
-
-                    if (selectedElection && selectedElection.positions) {
-                        selectedElection.positions.forEach(function(position) {
-                            const option = document.createElement('option');
-                            option.value = position.position_id;
-                            option.textContent = position.position_name;
-                            positionSelect.appendChild(option);
-                        });
-                    }
-                }
-            });
-            // Event Listeners
-            document.getElementById('new-candidate-btn').addEventListener('click', openNewCandidateModal);
-            document.getElementById('close-candidate-modal-btn').addEventListener('click', closeCandidateModal);
-        });
-    </script>
-
-
-
-    <script src="../../assets/js/admin/dashboardMain.js"></script>
 </body>
 
 </html>

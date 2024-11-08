@@ -428,3 +428,238 @@ select.editable-select {
     color: #333;
     text-decoration: none;
 }
+
+
+/* Styles for the status bubble */
+.green-bubble {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: green;
+    color: white;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+.red-bubble {
+    display: inline-block;
+    padding: 5px 10px;
+    background-color: red;
+    color: white;
+    border-radius: 12px;
+    font-size: 14px;
+}
+
+/* Style for the tab navigation buttons */
+.audit-tab-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1em;
+}
+
+.audit-tab {
+    padding: 0.75em 1.5em;
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.audit-tab.active-tab {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* Style for the tab content sections */
+.audit-tab-content {
+    display: none;
+    padding: 1.5em;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin-top: 1em;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.audit-tab-content.active {
+    display: block;
+}
+
+/* Animation for tab content fade-in */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Style for the report tab navigation buttons */
+.report-tab-nav {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1em;
+}
+
+.report-tab {
+    padding: 0.75em 1.5em;
+    background-color: #f0f0f0;
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.report-tab.active-report-tab {
+    background-color: #28a745;
+    /* Green for reports */
+    color: white;
+    border-color: #28a745;
+}
+
+/* Style for the report tab content sections */
+.report-tab-content {
+    display: none;
+    padding: 1.5em;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    margin-top: 1em;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.report-tab-content.active-report-content {
+    display: block;
+}
+
+/* Stats box container */
+.stats-container {
+    display: flex;
+    justify-content: center;
+    gap: 1.5em;
+    flex-wrap: wrap;
+    margin-bottom: 1.5em;
+    text-align: center;
+}
+
+.stat-box {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1em;
+    width: 20%;
+    min-width: 160px;
+    text-align: center;
+}
+
+.stat-box h4 {
+    font-size: 1rem;
+    color: #555;
+    margin-bottom: 0.5em;
+}
+
+.stat-box p {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Animation for tab content fade-in */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chart-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 200px;
+    text-align: center;
+    height: 120px;
+    width: 100%;
+}
+
+/* Container for the table */
+.recent-users-table-container {
+    margin: 20px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+/* Header styling */
+#recent-users-header {
+    font-size: 1.5em;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+/* Table Styling */
+#recent-users-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+/* Table column headers */
+.recent-users-column-name,
+.recent-users-column-email,
+.recent-users-column-registration-date {
+    padding: 12px;
+    text-align: left;
+    font-size: 14px;
+}
+
+/* Table header background */
+#recent-users-table th {
+    background-color: #898d8c;
+    color: white;
+}
+
+/* Zebra striping for rows */
+#recent-users-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+
+/* Hover effect for rows */
+#recent-users-table tr:hover {
+    background-color: #ddd;
+}
+
+/* Styling for the name column */
+.recent-users-name {
+    font-weight: bold;
+}
+
+/* Styling for the email column */
+.recent-users-email {
+    color: #333;
+}
+
+/* Styling for the registration date column */
+.recent-users-registration-date {
+    color: #777;
+}
+
+/* Empty state message */
+.recent-users-empty td {
+    text-align: center;
+    color: #777;
+    font-style: italic;
+}
